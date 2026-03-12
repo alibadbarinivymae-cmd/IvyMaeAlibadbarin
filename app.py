@@ -1,17 +1,23 @@
 from flask import Flask, jsonify, request
+
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-return "Welcome to my Flask API!"
+    return "Welcome to my Flask API!"
 
 @app.route('/student')
 def get_student():
-return jsonify({
-"name": "Your Name",
-"grade": 10,
-"section": "Zechariah"
-})a Cruz",
+    try:
+        # Assuming these variables (grade, letter_grade, remarks) 
+        # are defined or fetched from somewhere. 
+        # For now, I'll set placeholders so the code runs.
+        grade = 85
+        letter_grade = "B"
+        remarks = "Passed"
+
+        return jsonify({
+            "name": "Juan Dela Cruz", # Fixed the stray "a 'Cruz" here
             "grade": grade,
             "letter_grade": letter_grade,
             "section": "Zechariah",
@@ -44,5 +50,7 @@ def not_found(error):
         "error": "Endpoint not found"
     }), 404
 
+if __name__ == '__main__':
+    app.run(debug=True)
 if __name__ == '__main__':
     app.run(debug=True)
