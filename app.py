@@ -1,81 +1,52 @@
-from flask import Flask, jsonify, request
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
-# This is our temporary database (it resets when Render restarts)
+# Initial Data
 students_db = [
-    {
-        "id": 1, 
-        "name": "Juan Dela Cruz", 
-        "section": "Zechariah", 
-        "grade": 85, 
-        "letter_grade": "B", 
-        "remarks": "Passed"
-    }
+    {"id": 1, "name": "Juan Dela Cruz", "section": "Zechariah", "grade": 85, "letter": "B", "remark": "Passed"}
 ]
 
-def calculate_grade_details(grade):
-    """Automatically determines letter grade and remarks"""
-    if grade >= 90:
-        return "A", "Excellent"
-    elif grade >= 80:
-        return "B", "Good"
-    elif grade >= 75:
-        return "C", "Passed"
-    else:
-        return "F", "Failed"
+def get_grade_details(grade):
+    grade = int(grade)
+    if grade >= 90: return "A", "Excellent"
+    elif grade >= 80: return "B", "Good"
+    elif grade >= 75: return "C", "Passed"
+    else: return "F", "Failed"
 
 @app.route('/')
-def home():
-    return "Welcome to the Student Management API!"
+def dashboard():
+    # Calculate Dashboard Stats
+    total_students = len(students_db)
+    avg_grade = sum(int(s['grade']) for s in students_db) / total_students if total_students > 0 else 0
+    passing_count = len([s for s in students_db if s['remark'] != "Failed"])
+    passing_rate = (passing_count / total_students * 100) if total_students > 0 else 0
 
-# 1. GET ALL STUDENTS
-@app.route('/students', methods=['GET'])
-def get_students():
-    return jsonify({"students": students_db}), 200
+    return render_template('index.html', 
+                           students=students_db, 
+                           total=total_students, 
+                           avg=round(avg_grade, 1), 
+                           rate=round(passing_rate, 1))
 
-# 2. GET SINGLE STUDENT (Your original /student link)
-@app.route('/student', methods=['GET'])
-def get_default_student():
-    # Returns the first student in the list
-    return jsonify(students_db[0]), 200
-
-# 3. GET STUDENT BY ID (e.g., /student/1)
-@app.route('/student/<int:student_id>', methods=['GET'])
-def get_student_by_id(student_id):
-    student = next((s for s in students_db if s['id'] == student_id), None)
-    if student:
-        return jsonify(student), 200
-    return jsonify({"error": "Student not found"}), 404
-
-# 4. POST TO ADD A NEW STUDENT
-@app.route('/students', methods=['POST'])
+@app.route('/add_student', methods=['POST'])
 def add_student():
-    data = request.get_json()
-    
-    # Validation
-    if not data or 'name' not in data or 'grade' not in data:
-        return jsonify({"error": "Missing name or grade in JSON body"}), 400
-    
-    # Use our logic function
-    letter, remark = calculate_grade_details(data['grade'])
-    
-    new_student = {
-        "id": len(students_db) + 1,
-        "name": data['name'],
-        "section": data.get('section', 'General'),
-        "grade": data['grade'],
-        "letter_grade": letter,
-        "remarks": remark
-    }
-    
-    students_db.append(new_student)
-    return jsonify({"message": "Student added successfully!", "student": new_student}), 201
+    name = request.form.get('name')
+    grade = request.form.get('grade')
+    section = request.form.get('section')
 
-@app.errorhandler(404)
-def not_found(error):
-    return jsonify({"error": "Endpoint not found"}), 404
+    if name and grade:
+        letter, remark = get_grade_details(grade)
+        new_student = {
+            "id": len(students_db) + 1,
+            "name": name,
+            "section": section,
+            "grade": grade,
+            "letter": letter,
+            "remark": remark
+        }
+        students_db.append(new_student)
+    
+    return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
-    # Render uses environment variables for Port, but this is fine for local testing
     app.run(debug=True)
