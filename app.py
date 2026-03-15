@@ -2,13 +2,18 @@ from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
 
-# Initial Data
+# Initial Data - Ensure 'grade' is an int
 students_db = [
     {"id": 1, "name": "Juan Dela Cruz", "section": "Zechariah", "grade": 85, "letter": "B", "remark": "Passed"}
 ]
 
 def get_grade_details(grade):
-    grade = int(grade)
+    # Convert to int safely
+    try:
+        grade = int(grade)
+    except (ValueError, TypeError):
+        grade = 0
+        
     if grade >= 90: return "A", "Excellent"
     elif grade >= 80: return "B", "Good"
     elif grade >= 75: return "C", "Passed"
@@ -16,11 +21,16 @@ def get_grade_details(grade):
 
 @app.route('/')
 def dashboard():
-    # Calculate Dashboard Stats
     total_students = len(students_db)
-    avg_grade = sum(int(s['grade']) for s in students_db) / total_students if total_students > 0 else 0
-    passing_count = len([s for s in students_db if s['remark'] != "Failed"])
-    passing_rate = (passing_count / total_students * 100) if total_students > 0 else 0
+    
+    # Critical Fix: Ensure grade is converted to int during calculation
+    if total_students > 0:
+        avg_grade = sum(int(s['grade']) for s in students_db) / total_students
+        passing_count = len([s for s in students_db if int(s['grade']) >= 75])
+        passing_rate = (passing_count / total_students * 100)
+    else:
+        avg_grade = 0
+        passing_rate = 0
 
     return render_template('index.html', 
                            students=students_db, 
@@ -40,7 +50,7 @@ def add_student():
             "id": len(students_db) + 1,
             "name": name,
             "section": section,
-            "grade": grade,
+            "grade": int(grade), # Store as integer
             "letter": letter,
             "remark": remark
         }
