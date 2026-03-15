@@ -1,17 +1,17 @@
 import os
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for
 
 app = Flask(__name__)
-# Secret key is required for flashing messages (alerts)
+# Secret key is required for session-based features
 app.secret_key = os.environ.get("SECRET_KEY", "dev_key_123")
 
-# Initial Data
+# Initial Data (In-memory storage)
 students_db = [
-    {"id": 1, "name": "Juan Dela Cruz", "section": "Zechariah", "grade": 85, "letter": "B", "remark": "Passed"}
+    {"id": 1, "name": "Juan Dela Cruz", "section": "Zechariah", "grade": 85, "letter": "B", "remark": "Good"}
 ]
 
 def calculate_grade_details(grade_input):
-    """Safely converts input and returns letter and remark."""
+    """Safely converts input and returns score, letter, and remark."""
     try:
         score = int(grade_input)
     except (ValueError, TypeError):
@@ -26,7 +26,6 @@ def calculate_grade_details(grade_input):
 def dashboard():
     total_students = len(students_db)
     
-    # Using a more robust calculation method
     if total_students > 0:
         grades = [s['grade'] for s in students_db]
         avg_grade = sum(grades) / total_students
@@ -44,18 +43,15 @@ def dashboard():
 
 @app.route('/add_student', methods=['POST'])
 def add_student():
-    # .strip() removes accidental spaces in names
     name = request.form.get('name', '').strip()
     grade_raw = request.form.get('grade')
     section = request.form.get('section', '').strip()
 
-    # Validation: Ensure no empty fields
     if not name or not grade_raw or not section:
         return redirect(url_for('dashboard'))
 
     score, letter, remark = calculate_grade_details(grade_raw)
     
-    # If the grade wasn't a valid number, score will be None
     if score is not None:
         new_student = {
             "id": len(students_db) + 1,
@@ -70,6 +66,5 @@ def add_student():
     return redirect(url_for('dashboard'))
 
 if __name__ == '__main__':
-    # Standard Render/Cloud configuration
     port = int(os.environ.get("PORT", 5000))
     app.run(host='0.0.0.0', port=port, debug=True)
